@@ -17,6 +17,7 @@ from dmtestutils.api_model_stubs import (
 )
 from dmtestutils.fixtures import valid_pdf_bytes
 
+from app.main.views.suppliers import SUPPLIER_SERVICES_REMOVED_MESSAGE, SUPPLIER_SERVICES_UNSUSPENDED_MESSAGE
 from ...helpers import LoggedInApplicationTest, Response
 
 
@@ -1184,7 +1185,7 @@ class TestToggleSupplierServicesView(LoggedInApplicationTest):
 
     def test_400_if_supplier_has_no_service_on_framework(self):
         framework = 'g-cloud-8'
-        self.data_api_client.find_services.return_value = {'services': []}
+        self.data_api_client.find_services_iter.return_value = []
 
         response = self.client.post('/admin/suppliers/1000/services?remove={}'.format(framework))
 
@@ -1211,14 +1212,12 @@ class TestToggleSupplierServicesView(LoggedInApplicationTest):
         service_3['id'] = '5687123785023490'
         map(lambda k: k.update({'status': initial_status}), [service_1, service_2, service_3])
 
-        self.data_api_client.find_services.return_value = {
-            'services': [service_1, service_2, service_3]
-        }
+        self.data_api_client.find_services_iter.return_value = [service_1, service_2, service_3]
 
         response = self.client.post('/admin/suppliers/1000/services?{}={}'.format(action, framework))
 
         assert response.status_code == 302
-        assert self.data_api_client.find_services.call_args_list == [
+        assert self.data_api_client.find_services_iter.call_args_list == [
             mock.call(
                 supplier_id=1000,
                 framework='g-cloud-8',
@@ -1231,17 +1230,21 @@ class TestToggleSupplierServicesView(LoggedInApplicationTest):
             mock.call('5687123785023490', result_status, 'test@example.com'),
         ]
 
-    @pytest.mark.parametrize('action, message_action', [
-        ('remove', 'suspended'), ('publish', 'unsuspended')
+    @pytest.mark.parametrize('action, message_type', [
+        ('remove', SUPPLIER_SERVICES_REMOVED_MESSAGE),
+        ('publish', SUPPLIER_SERVICES_UNSUSPENDED_MESSAGE)
     ])
-    def test_flashes_success_message(self, action, message_action):
+    def test_flashes_success_message(self, action, message_type):
         framework = 'g-cloud-8'
+        service_1 = self.load_example_listing('services_response')['services'][0]
+        self.data_api_client.find_services_iter.return_value = [service_1]
 
         response = self.client.post('/admin/suppliers/1000/services?{}={}'.format(action, framework))
 
         assert response.status_code == 302
 
-        expected_flash_message = "You {} all G-Cloud 8 services for ‘PROACTIS Group Ltd’.".format(message_action)
+        expected_flash_message = message_type.format(framework_name="G-Cloud 8", supplier_name="Supplier Name")
+
         with self.client.session_transaction() as session:
             assert session['_flashes'][0][1] == expected_flash_message
 

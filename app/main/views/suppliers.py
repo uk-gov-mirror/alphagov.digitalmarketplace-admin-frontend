@@ -839,20 +839,22 @@ def toggle_supplier_services(supplier_id):
     if framework['status'] != 'live':
         abort(400, "Cannot toggle services for framework {}".format(toggle_action['framework_slug']))
 
-    services = data_api_client.find_services(
+    services = data_api_client.find_services_iter(
         supplier_id=supplier_id,
         framework=toggle_action['framework_slug'],
         status=toggle_action['old_status']
-    )['services']
+    )
     if not services:
         abort(400, 'No {} services on framework'.format(toggle_action['old_status']))
 
     for service in services:
         data_api_client.update_service_status(service['id'], toggle_action['new_status'], current_user.email_address)
 
+    supplier = data_api_client.get_supplier(supplier_id)["suppliers"]
+
     flash(toggle_action['flash_message'].format(
-        supplier_name=services[0]['supplierName'],
-        framework_name=services[0]['frameworkName'])
+        supplier_name=supplier['name'],
+        framework_name=framework['name'])
     )
     return redirect(url_for('.find_supplier_services', supplier_id=supplier_id))
 
