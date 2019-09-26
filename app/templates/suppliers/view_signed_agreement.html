@@ -109,12 +109,12 @@
         {% endif %}
       {% endif %}
       <p class="govuk-body">
-        {%
-          with
-          url = url_for(".next_agreement", framework_slug=framework.slug, supplier_id=supplier.id, status=next_status),
-          text = "Next agreement"
+        {% with
+          url = url_for(".next_agreement", framework_slug=framework.slug, supplier_id=supplier.id, status=next_status)
         %}
-          {% include "toolkit/secondary-action-link.html" %}
+        <div class="dmp-secondary-action-link">
+          <a class="govuk-link govuk-link--no-visited-state" href={{url}}>Next agreement</a>
+        </div>
         {% endwith %}
       </p>
   </div>
