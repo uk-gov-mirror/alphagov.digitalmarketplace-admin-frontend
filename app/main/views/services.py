@@ -15,6 +15,7 @@ from .. import main
 from ..auth import role_required
 from ..helpers.diff_tools import html_diff_tables_from_sections_iter
 from ..helpers.frameworks import get_framework_or_404
+from ..helpers.service import filter_relevant_frameworks
 from ... import content_loader
 from ... import data_api_client
 
@@ -40,14 +41,7 @@ ALL_ADMIN_ROLES = [
 @role_required(*ALL_ADMIN_ROLES)
 def index():
     frameworks = data_api_client.find_frameworks()['frameworks']
-    # TODO replace this temporary fix for DOS2 when a better solution has been created.
-    frameworks = [
-        fw for fw in frameworks if not (fw['status'] == 'coming' or (
-            fw['status'] == 'expired' and fw["family"] != 'digital-outcomes-and-specialists'
-        ))
-    ]
-    frameworks = sorted(frameworks, key=lambda x: x['id'], reverse=True)
-    return render_template("index.html", frameworks=frameworks)
+    return render_template("index.html", frameworks=filter_relevant_frameworks(frameworks))
 
 
 @main.route('/services', methods=['GET'])
